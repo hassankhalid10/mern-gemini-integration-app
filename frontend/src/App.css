@@ -529,3 +529,206 @@ input:focus {
     flex: none;
   }
 }
+
+/* SETTINGS BUTTON */
+.settings-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.settings-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+  border-color: var(--primary);
+}
+
+/* SETTINGS PANEL */
+.settings-panel {
+  padding: 16px 15px;
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+  background: rgba(15, 23, 42, 0.4);
+  margin-bottom: 8px;
+}
+
+.settings-row {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-label span {
+  color: var(--text-main);
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.settings-panel select {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.settings-panel select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.settings-panel input[type=range] {
+  width: 100%;
+  accent-color: var(--primary);
+  cursor: pointer;
+  height: 4px;
+}
+
+/* MESSAGE ACTION BAR */
+.message {
+  position: relative;
+  flex-direction: column;
+}
+
+.msg-action-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.user-msg .msg-action-bar {
+  justify-content: flex-end;
+}
+
+.ai-msg .msg-action-bar {
+  justify-content: flex-start;
+}
+
+.message.hovered .msg-action-bar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.msg-action-bar button {
+  background: transparent;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 13px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.msg-action-bar button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.msg-action-bar button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* EDIT AREA */
+.edit-area {
+  width: 100%;
+  max-width: 80%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-msg .edit-area {
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.edit-area textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--input-bg);
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.edit-area textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.edit-save-btn {
+  padding: 8px 16px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-save-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.edit-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-cancel-btn {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}

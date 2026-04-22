@@ -15,12 +15,24 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
 
+  // Settings state (persisted in localStorage)
+  const [tone, setTone] = useState(localStorage.getItem("tone") || "Neutral");
+  const [maxTokens, setMaxTokens] = useState(parseInt(localStorage.getItem("maxTokens")) || 8192);
+  const [showSettings, setShowSettings] = useState(false);
+
   // Multi-Turn AI state
   const [chatSessions, setChatSessions] = useState([]);      // Sidebar history list
   const [activeChatId, setActiveChatId] = useState(null);    // The currently loaded chat
   const [currentMessages, setCurrentMessages] = useState([]); // The messages in the active chat
   
   const [question, setQuestion] = useState("");
+
+  // Message action state
+  const [hoveredMsgIdx, setHoveredMsgIdx] = useState(null);
+  const [editingMsgIdx, setEditingMsgIdx] = useState(null);
+  const [editContent, setEditContent] = useState("");
+  const [copiedMsgIdx, setCopiedMsgIdx] = useState(null);
+  const [regenLoading, setRegenLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
   
@@ -108,7 +120,7 @@ export default function App() {
     try {
       const res = await axios.post(
         `${API_URL}/ai/ask`,
-        { question: tempQuestion, chatId: activeChatId },
+        { question: tempQuestion, chatId: activeChatId, tone, maxTokens },
         { headers: { Authorization: token } }
       );
       
@@ -133,6 +145,69 @@ export default function App() {
     setChatSessions([]);
     setCurrentMessages([]);
     setActiveChatId(null);
+  };
+
+  // Settings handlers
+  const handleToneChange = (value) => {
+    setTone(value);
+    localStorage.setItem("tone", value);
+  };
+
+  const handleMaxTokensChange = (value) => {
+    setMaxTokens(parseInt(value));
+    localStorage.setItem("maxTokens", value);
+  };
+
+  // Message action handlers
+  const handleCopy = async (content, idx) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMsgIdx(idx);
+      setTimeout(() => setCopiedMsgIdx(null), 1500);
+    } catch (err) {
+      console.error("Copy failed", err);
+    }
+  };
+
+  const regenerateAI = async () => {
+    const prevMessages = currentMessages;
+    setRegenLoading(true);
+    setAiError("");
+    try {
+      const res = await axios.post(
+        `${API_URL}/ai/regenerate`,
+        { chatId: activeChatId, tone, maxTokens },
+        { headers: { Authorization: token } }
+      );
+      setCurrentMessages(res.data.messages);
+    } catch (err) {
+      setCurrentMessages(prevMessages);
+      setAiError(err.response?.data?.msg || "Failed to regenerate response");
+    } finally {
+      setRegenLoading(false);
+    }
+  };
+
+  const editMessage = async (idx) => {
+    if (!editContent.trim()) return;
+    const prevMessages = currentMessages;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const res = await axios.post(
+        `${API_URL}/ai/edit`,
+        { chatId: activeChatId, messageIndex: idx, newContent: editContent, tone, maxTokens },
+        { headers: { Authorization: token } }
+      );
+      setCurrentMessages(res.data.messages);
+      setEditingMsgIdx(null);
+      setEditContent("");
+    } catch (err) {
+      setCurrentMessages(prevMessages);
+      setAiError(err.response?.data?.msg || "Failed to edit message");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   // ----- Views ----- //
@@ -211,7 +286,38 @@ export default function App() {
             <button onClick={startNewChat} className="primary-btn" style={{ width: '100%', fontSize: '14px', padding: '10px' }}>
                 + New Chat
             </button>
+            <button onClick={() => setShowSettings(s => !s)} className="settings-btn">
+              ⚙ Settings
+            </button>
         </div>
+
+        {showSettings && (
+          <div className="settings-panel">
+            <div className="settings-row">
+              <label className="settings-label">Tone</label>
+              <select value={tone} onChange={e => handleToneChange(e.target.value)}>
+                <option>Neutral</option>
+                <option>Professional</option>
+                <option>Casual</option>
+                <option>Creative</option>
+                <option>Concise</option>
+                <option>Angry</option>
+                <option>Romantic</option>
+              </select>
+            </div>
+            <div className="settings-row">
+              <label className="settings-label">Max Tokens: <span>{maxTokens}</span></label>
+              <input
+                type="range"
+                min="50"
+                max="8192"
+                step="1"
+                value={maxTokens}
+                onChange={e => handleMaxTokensChange(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="history-list">
           {chatSessions.length === 0 ? (
@@ -248,13 +354,78 @@ export default function App() {
             )}
             
             <div className="messages-flow">
-              {currentMessages.map((msg, idx) => (
-                <div key={idx} className={`message ${msg.role === 'user' ? 'user-msg' : 'ai-msg'}`}>
-                  <div className={`bubble ${msg.role === 'model' ? 'ai-bubble markdown-sim' : ''}`}>
-                    {msg.content}
+              {(() => {
+                const lastModelIdx = currentMessages.reduce((last, msg, idx) => msg.role === 'model' ? idx : last, -1);
+                return currentMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`message ${msg.role === 'user' ? 'user-msg' : 'ai-msg'}${hoveredMsgIdx === idx && editingMsgIdx === null ? ' hovered' : ''}`}
+                    onMouseEnter={() => { if (editingMsgIdx === null) setHoveredMsgIdx(idx); }}
+                    onMouseLeave={() => setHoveredMsgIdx(null)}
+                  >
+                    {editingMsgIdx === idx ? (
+                      <div className="edit-area">
+                        <textarea
+                          value={editContent}
+                          onChange={e => setEditContent(e.target.value)}
+                          rows={3}
+                          autoFocus
+                        />
+                        <div className="edit-actions">
+                          <button
+                            className="edit-save-btn"
+                            disabled={!editContent.trim() || aiLoading}
+                            onClick={() => editMessage(idx)}
+                          >
+                            {aiLoading ? '⏳' : 'Save & Submit'}
+                          </button>
+                          <button
+                            className="edit-cancel-btn"
+                            onClick={() => { setEditingMsgIdx(null); setEditContent(""); }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className={`bubble ${msg.role === 'model' ? 'ai-bubble markdown-sim' : ''}`}>
+                          {msg.content}
+                        </div>
+                        <div className="msg-action-bar">
+                          {msg.role === 'model' && (
+                            <button
+                              title="Copy"
+                              disabled={aiLoading || regenLoading || editingMsgIdx !== null}
+                              onClick={() => handleCopy(msg.content, idx)}
+                            >
+                              {copiedMsgIdx === idx ? '✓' : '📋'}
+                            </button>
+                          )}
+                          {msg.role === 'model' && idx === lastModelIdx && (
+                            <button
+                              title="Regenerate"
+                              disabled={aiLoading || editingMsgIdx !== null}
+                              onClick={regenerateAI}
+                            >
+                              {regenLoading ? '⏳' : '🔁'}
+                            </button>
+                          )}
+                          {msg.role === 'user' && (
+                            <button
+                              title="Edit"
+                              disabled={aiLoading || regenLoading}
+                              onClick={() => { setEditingMsgIdx(idx); setEditContent(msg.content); }}
+                            >
+                              ✏️
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
-              ))}
+                ));
+              })()}
               
               {aiLoading && (
                 <div className="message ai-msg">
