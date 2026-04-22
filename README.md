@@ -30,7 +30,7 @@ Before you begin, ensure you have met the following requirements:
    ```
    Create a `.env` file in the `backend` directory with the following variables:
    ```env
-   PORT=5000
+   PORT=4000
    MONGO_URI=your_mongodb_connection_string
    # Add your AI provider key here (adjust based on your implementation)
    AI_API_KEY=your_api_key_here
