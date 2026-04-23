@@ -6,6 +6,7 @@ import cors from "cors";
 
 import authRoutes from "./routes/auth.js";
 import aiRoutes from "./routes/ai.js";
+import memoryRoutes from "./routes/memory.js";
 
 import { connectDB } from "./config/db.js";
 
@@ -18,6 +19,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/memory", memoryRoutes);
 
 console.log("API KEY:", process.env.GEMINI_API_KEY);
 // console.log("PORT:", process.env.PORT);

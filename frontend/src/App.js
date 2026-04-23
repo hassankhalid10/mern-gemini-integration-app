@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Pin, Trash2, Edit3, Check, X, Copy, RotateCcw, Send, LogOut, Settings } from 'lucide-react';
+import { Pin, Trash2, Edit3, Check, X, Copy, RotateCcw, Send, LogOut, Settings, Brain, Plus } from 'lucide-react';
 import "./App.css";
 
 const API_URL = "http://localhost:4000/api";
@@ -46,6 +46,13 @@ export default function App() {
   const [renameValue, setRenameValue] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [sidebarError, setSidebarError] = useState("");
+
+  // Memory state
+  const [memory, setMemory] = useState({ profile: {}, preferences: {}, goals: [] });
+  const [showMemory, setShowMemory] = useState(false);
+  const [newMemKey, setNewMemKey] = useState("");
+  const [newMemVal, setNewMemVal] = useState("");
+  const [newMemCat, setNewMemCat] = useState("profile");
   
   const messagesEndRef = useRef(null);
 
@@ -60,6 +67,7 @@ export default function App() {
     if (token) {
       localStorage.setItem("token", token);
       loadChatsList();
+      fetchMemory();
     } else {
       localStorage.removeItem("token");
     }
@@ -273,6 +281,49 @@ export default function App() {
     }
   };
 
+  const fetchMemory = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/memory`, {
+        headers: { Authorization: token }
+      });
+      setMemory(res.data);
+    } catch (err) {
+      console.error("Fetch memory failed", err);
+    }
+  };
+
+  const updateMemory = async () => {
+    if (!newMemVal.trim()) return;
+    try {
+      let payload = {};
+      if (newMemCat === "goals") {
+        payload.goals = [...memory.goals, newMemVal];
+      } else {
+        payload[newMemCat] = { [newMemKey]: newMemVal };
+      }
+
+      const res = await axios.patch(`${API_URL}/memory`, payload, {
+        headers: { Authorization: token }
+      });
+      setMemory(res.data);
+      setNewMemKey("");
+      setNewMemVal("");
+    } catch (err) {
+      console.error("Update memory failed", err);
+    }
+  };
+
+  const removeMemory = async (category, key) => {
+    try {
+      const res = await axios.delete(`${API_URL}/memory/${category}/${key}`, {
+        headers: { Authorization: token }
+      });
+      setMemory(res.data);
+    } catch (err) {
+      console.error("Delete memory failed", err);
+    }
+  };
+
   // ----- Views ----- //
 
   if (!token) {
@@ -350,7 +401,10 @@ export default function App() {
                 + New Chat
             </button>
             <button onClick={() => setShowSettings(s => !s)} className="settings-btn">
-              ⚙ Settings
+              <Settings size={14} style={{ marginRight: '8px' }} /> Settings
+            </button>
+            <button onClick={() => setShowMemory(true)} className="settings-btn memory-trigger-btn">
+              <Brain size={14} style={{ marginRight: '8px' }} /> Memory Manager
             </button>
             {sidebarError && (
               <div className="sidebar-error-msg">
@@ -590,6 +644,78 @@ export default function App() {
               <div className="error-banner chat-error">{aiError}</div>
             )}
           </div>
+
+          {showMemory && (
+            <div className="memory-overlay" onClick={() => setShowMemory(false)}>
+              <div className="memory-modal glass-card" onClick={e => e.stopPropagation()}>
+                <div className="memory-header">
+                  <h3><Brain size={20} /> AI Memory Manager</h3>
+                  <button className="close-btn" onClick={() => setShowMemory(false)}><X size={20} /></button>
+                </div>
+                
+                <div className="memory-body">
+                  <div className="memory-section">
+                    <h4>Add New Memory</h4>
+                    <div className="memory-add-form">
+                      <select value={newMemCat} onChange={e => setNewMemCat(e.target.value)}>
+                        <option value="profile">Profile (Facts)</option>
+                        <option value="preferences">Preferences</option>
+                        <option value="goals">Goals</option>
+                      </select>
+                      {newMemCat !== "goals" && (
+                        <input 
+                          placeholder="Key (e.g. Location)" 
+                          value={newMemKey}
+                          onChange={e => setNewMemKey(e.target.value)}
+                        />
+                      )}
+                      <input 
+                        placeholder={newMemCat === "goals" ? "Goal (e.g. Learn React)" : "Value"} 
+                        value={newMemVal}
+                        onChange={e => setNewMemVal(e.target.value)}
+                      />
+                      <button onClick={updateMemory} className="primary-btn add-mem-btn">
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="memory-grid">
+                    <div className="memory-card">
+                      <h5>Profile</h5>
+                      {Object.entries(memory.profile).map(([k, v]) => (
+                        <div key={k} className="mem-item">
+                          <span><strong>{k}:</strong> {v}</span>
+                          <button onClick={() => removeMemory("profile", k)}><X size={12} /></button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="memory-card">
+                      <h5>Preferences</h5>
+                      {Object.entries(memory.preferences).map(([k, v]) => (
+                        <div key={k} className="mem-item">
+                          <span><strong>{k}:</strong> {v}</span>
+                          <button onClick={() => removeMemory("preferences", k)}><X size={12} /></button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="memory-card">
+                      <h5>Goals</h5>
+                      <div className="goals-tags">
+                        {memory.goals.map(g => (
+                          <div key={g} className="goal-tag">
+                            {g}
+                            <button onClick={() => removeMemory("goals", g)}><X size={10} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form className="input-area" onSubmit={askAI}>
             <div className="input-wrapper">
               <input

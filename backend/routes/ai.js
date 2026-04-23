@@ -1,9 +1,128 @@
 import express from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Chat from "../models/Chat.js";
+import User from "../models/User.js";
 import { auth } from "../middleware/auth.js";
 
 const router = express.Router();
+
+// Lazy initialization for genAI to ensure process.env is loaded in ESM
+let genAI;
+const getGenAI = () => {
+  if (!genAI) {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is missing from environment variables");
+    }
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  }
+  return genAI;
+};
+
+// Helper to get user memory as a prompt
+const getMemoryPrompt = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user || !user.memory) return "";
+  
+  const { profile, preferences, goals } = user.memory;
+  let profileStr = Array.from(profile.entries()).map(([k, v]) => `${k}: ${v}`).join(", ");
+  let prefStr = Array.from(preferences.entries()).map(([k, v]) => `${k}: ${v}`).join(", ");
+  let goalsStr = goals.join(", ");
+  
+  return `Context about the user:
+- Profile: ${profileStr || "Unknown"}
+- Preferences: ${prefStr || "None"}
+- Goals: ${goalsStr || "None"}
+Please use this information to personalize your responses when relevant.`;
+};
+
+// NEW: Helper to extract memory from conversation
+const extractAndSaveMemory = async (userId, userMessage) => {
+  try {
+    console.log(`[Memory] Analyzing message from user ${userId}...`);
+    
+    const extractionPrompt = `
+      You are a specialized AI that extracts permanent user information. 
+      Analyze the text below and extract:
+      1. Profile: Long-term facts (e.g. Name, Age, Job, Location).
+      2. Preferences: Likes, dislikes, habits, or preferred style.
+      3. Goals: Current projects or learning objectives.
+
+      Return ONLY a JSON object with this structure:
+      {"profile": {"key": "value"}, "preferences": {"key": "value"}, "goals": ["string"]}
+
+      If no new info is found, return empty fields.
+      Do not repeat info the user didn't mention.
+
+      User Text: "${userMessage}"
+    `;
+
+    const model = getGenAI().getGenerativeModel({ model: "gemini-flash-latest" });
+    const result = await model.generateContent(extractionPrompt);
+    const responseText = result.response.text();
+    
+    // Parse JSON safely
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.log("[Memory] No structured data found in AI response.");
+      return;
+    }
+    
+    const extracted = JSON.parse(jsonMatch[0]);
+    const user = await User.findById(userId);
+    if (!user) return;
+    
+    // Ensure memory object and sub-maps exist
+    if (!user.memory) user.memory = {};
+    if (!user.memory.profile) user.memory.profile = new Map();
+    if (!user.memory.preferences) user.memory.preferences = new Map();
+    if (!user.memory.goals) user.memory.goals = [];
+
+    let hasUpdates = false;
+
+    // Update Profile
+    if (extracted.profile) {
+      for (const [k, v] of Object.entries(extracted.profile)) {
+        if (user.memory.profile.get(k) !== v) {
+          user.memory.profile.set(k, v);
+          hasUpdates = true;
+          console.log(`[Memory] New Profile Fact: ${k} = ${v}`);
+        }
+      }
+    }
+
+    // Update Preferences
+    if (extracted.preferences) {
+      for (const [k, v] of Object.entries(extracted.preferences)) {
+        if (user.memory.preferences.get(k) !== v) {
+          user.memory.preferences.set(k, v);
+          hasUpdates = true;
+          console.log(`[Memory] New Preference: ${k} = ${v}`);
+        }
+      }
+    }
+
+    // Update Goals
+    if (extracted.goals && Array.isArray(extracted.goals)) {
+      const currentGoals = new Set(user.memory.goals);
+      extracted.goals.forEach(g => {
+        if (!currentGoals.has(g)) {
+          user.memory.goals.push(g);
+          hasUpdates = true;
+          console.log(`[Memory] New Goal identified: ${g}`);
+        }
+      });
+    }
+
+    if (hasUpdates) {
+      await user.save();
+      console.log(`[Memory] Successfully saved updates for user ${userId}`);
+    } else {
+      console.log("[Memory] No new unique information found to save.");
+    }
+  } catch (err) {
+    console.error("[Memory Error] Extraction failed:", err.message);
+  }
+};
 
 router.post("/ask", auth, async (req, res) => {
   try {
@@ -32,16 +151,16 @@ router.post("/ask", auth, async (req, res) => {
       });
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
+    const memoryPrompt = await getMemoryPrompt(req.user.id);
+    const finalQuestion = tone && tone !== 'Neutral' ? `[Please respond in a ${tone} tone] ${question}` : question;
+
+    const model = getGenAI().getGenerativeModel({ 
       model: "gemini-flash-latest",
+      systemInstruction: memoryPrompt,
       generationConfig: { maxOutputTokens: maxTokens ? parseInt(maxTokens) : 2048 }
     });
 
-    // Initialize Chat with history
     const chatInstance = model.startChat({ history });
-
-    const finalQuestion = tone && tone !== 'Neutral' ? `[Please respond in a ${tone} tone] ${question}` : question;
 
     // Send new message
     const result = await chatInstance.sendMessage(finalQuestion);
@@ -56,6 +175,9 @@ router.post("/ask", auth, async (req, res) => {
     chatSession.messages.push({ role: "model", content: answer });
     
     await chatSession.save();
+
+    // Trigger memory extraction in the background (don't await to keep UI fast)
+    extractAndSaveMemory(req.user.id, question).catch(console.error);
 
     res.json({ answer, chatId: chatSession._id, messages: chatSession.messages });
   } catch (error) {
@@ -92,9 +214,10 @@ router.post("/regenerate", auth, async (req, res) => {
       parts: [{ text: msg.content }]
     }));
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
+    const memoryPrompt = await getMemoryPrompt(req.user.id);
+    const model = getGenAI().getGenerativeModel({ 
       model: "gemini-flash-latest",
+      systemInstruction: memoryPrompt,
       generationConfig: { maxOutputTokens: maxTokens ? parseInt(maxTokens) : 2048 }
     });
 
@@ -141,9 +264,10 @@ router.post("/edit", auth, async (req, res) => {
       parts: [{ text: msg.content }]
     }));
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
+    const memoryPrompt = await getMemoryPrompt(req.user.id);
+    const model = getGenAI().getGenerativeModel({ 
       model: "gemini-flash-latest",
+      systemInstruction: memoryPrompt,
       generationConfig: { maxOutputTokens: maxTokens ? parseInt(maxTokens) : 2048 }
     });
 
