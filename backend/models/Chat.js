@@ -8,7 +8,8 @@ const messageSchema = new mongoose.Schema({
 const chatSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   title: { type: String, default: "New Chat" },
-  messages: [messageSchema]
+  messages: [messageSchema],
+  isPinned: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.model("Chat", chatSchema);

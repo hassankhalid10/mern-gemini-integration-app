@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Pin, Trash2, Edit3, Check, X, Copy, RotateCcw, Send, LogOut, Settings } from 'lucide-react';
 import "./App.css";
 
 const API_URL = "http://localhost:4000/api";
@@ -35,6 +40,11 @@ export default function App() {
   const [regenLoading, setRegenLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+
+  // Sidebar action state
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   
   const messagesEndRef = useRef(null);
 
@@ -210,6 +220,48 @@ export default function App() {
     }
   };
 
+  const togglePin = async (id, e) => {
+    e.stopPropagation();
+    try {
+      await axios.patch(`${API_URL}/ai/chat/${id}/pin`, {}, {
+        headers: { Authorization: token }
+      });
+      loadChatsList();
+    } catch (err) {
+      console.error("Pin failed", err);
+    }
+  };
+
+  const renameChat = async (id) => {
+    if (!renameValue.trim()) return;
+    try {
+      await axios.patch(`${API_URL}/ai/chat/${id}/rename`, { title: renameValue }, {
+        headers: { Authorization: token }
+      });
+      setRenamingId(null);
+      setRenameValue("");
+      loadChatsList();
+    } catch (err) {
+      console.error("Rename failed", err);
+    }
+  };
+
+  const deleteChat = async (id, e) => {
+    if (e) e.stopPropagation();
+    try {
+      await axios.delete(`${API_URL}/ai/chat/${id}`, {
+        headers: { Authorization: token }
+      });
+      if (activeChatId === id) {
+        startNewChat();
+      }
+      setDeleteConfirmId(null);
+      loadChatsList();
+    } catch (err) {
+      console.error("Delete failed", err);
+    }
+  };
+
   // ----- Views ----- //
 
   if (!token) {
@@ -329,13 +381,66 @@ export default function App() {
             chatSessions.map((chat) => (
               <div 
                 key={chat._id} 
-                className={`history-item ${activeChatId === chat._id ? 'active' : ''}`}
+                className={`history-item ${activeChatId === chat._id ? 'active' : ''} ${chat.isPinned ? 'pinned' : ''}`}
                 onClick={() => loadSpecificChat(chat._id)}
               >
-                <p className="history-q">{chat.title || "New Chat"}</p>
-                <p className="history-a" style={{ fontSize: '11px' }}>
-                    {new Date(chat.updatedAt).toLocaleDateString()}
-                </p>
+                <div className="history-info">
+                  {renamingId === chat._id ? (
+                    <div className="rename-input-wrapper" onClick={e => e.stopPropagation()}>
+                      <input 
+                        value={renameValue} 
+                        onChange={e => setRenameValue(e.target.value)}
+                        autoFocus
+                        onKeyDown={e => e.key === 'Enter' && renameChat(chat._id)}
+                      />
+                      <button onClick={() => renameChat(chat._id)}><Check size={14} /></button>
+                      <button onClick={() => setRenamingId(null)}><X size={14} /></button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="history-q">{chat.title || "New Chat"}</p>
+                      <p className="history-a">
+                        {new Date(chat.updatedAt).toLocaleDateString()}
+                      </p>
+                    </>
+                  )}
+                </div>
+                
+                <div className="history-actions">
+                  <button 
+                    className={`action-btn pin-btn ${chat.isPinned ? 'active' : ''}`} 
+                    onClick={(e) => togglePin(chat._id, e)}
+                    title={chat.isPinned ? "Unpin" : "Pin"}
+                  >
+                    <Pin size={14} fill={chat.isPinned ? "currentColor" : "none"} />
+                  </button>
+                  <button 
+                    className="action-btn" 
+                    onClick={(e) => { e.stopPropagation(); setRenamingId(chat._id); setRenameValue(chat.title); }}
+                    title="Rename"
+                  >
+                    <Edit3 size={14} />
+                  </button>
+                  <button 
+                    className="action-btn delete-btn" 
+                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(chat._id); }}
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                {deleteConfirmId === chat._id && (
+                  <div className="delete-confirm-overlay" onClick={e => e.stopPropagation()}>
+                    <div className="delete-confirm-modal">
+                      <p>Delete this chat?</p>
+                      <div className="confirm-btns">
+                        <button className="confirm-yes" onClick={() => deleteChat(chat._id)}>Yes</button>
+                        <button className="confirm-no" onClick={() => setDeleteConfirmId(null)}>No</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -389,8 +494,34 @@ export default function App() {
                       </div>
                     ) : (
                       <>
-                        <div className={`bubble ${msg.role === 'model' ? 'ai-bubble markdown-sim' : ''}`}>
-                          {msg.content}
+                        <div className={`bubble ${msg.role === 'model' ? 'ai-bubble' : ''}`}>
+                          {msg.role === 'model' ? (
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                code({node, inline, className, children, ...props}) {
+                                  const match = /language-(\w+)/.exec(className || '')
+                                  return !inline && match ? (
+                                    <SyntaxHighlighter
+                                      children={String(children).replace(/\n$/, '')}
+                                      style={tomorrow}
+                                      language={match[1]}
+                                      PreTag="div"
+                                      {...props}
+                                    />
+                                  ) : (
+                                    <code className={className} {...props}>
+                                      {children}
+                                    </code>
+                                  )
+                                }
+                              }}
+                            >
+                              {msg.content}
+                            </ReactMarkdown>
+                          ) : (
+                            msg.content
+                          )}
                         </div>
                         <div className="msg-action-bar">
                           {msg.role === 'model' && (

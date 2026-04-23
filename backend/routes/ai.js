@@ -184,8 +184,8 @@ router.post("/edit", auth, async (req, res) => {
 router.get("/history", auth, async (req, res) => {
   try {
     const chats = await Chat.find({ userId: req.user.id })
-                            .select('_id title updatedAt')
-                            .sort({ updatedAt: -1 });
+                            .select('_id title isPinned updatedAt')
+                            .sort({ isPinned: -1, updatedAt: -1 });
     res.json(chats);
   } catch (error) {
     console.error("History fetch error:", error);
@@ -202,6 +202,51 @@ router.get("/chat/:id", auth, async (req, res) => {
     res.json(chat);
   } catch (error) {
     res.status(500).json({ msg: "Error fetching chat details" });
+  }
+});
+
+// Pin/Unpin chat
+router.patch("/chat/:id/pin", auth, async (req, res) => {
+  try {
+    const chat = await Chat.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!chat) return res.status(404).json({ msg: "Chat not found" });
+
+    chat.isPinned = !chat.isPinned;
+    await chat.save();
+    res.json({ msg: chat.isPinned ? "Chat pinned" : "Chat unpinned", isPinned: chat.isPinned });
+  } catch (error) {
+    res.status(500).json({ msg: "Error toggling pin status" });
+  }
+});
+
+// Rename chat
+router.patch("/chat/:id/rename", auth, async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title) return res.status(400).json({ msg: "Title is required" });
+
+    const chat = await Chat.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.id },
+      { title },
+      { new: true }
+    );
+    if (!chat) return res.status(404).json({ msg: "Chat not found" });
+
+    res.json({ msg: "Chat renamed", title: chat.title });
+  } catch (error) {
+    res.status(500).json({ msg: "Error renaming chat" });
+  }
+});
+
+// Delete chat
+router.delete("/chat/:id", auth, async (req, res) => {
+  try {
+    const chat = await Chat.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+    if (!chat) return res.status(404).json({ msg: "Chat not found" });
+
+    res.json({ msg: "Chat deleted" });
+  } catch (error) {
+    res.status(500).json({ msg: "Error deleting chat" });
   }
 });
 
