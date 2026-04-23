@@ -964,3 +964,16 @@ input:focus {
   color: var(--text-muted) !important;
   opacity: 0.5;
 }
+
+.sidebar-error-msg {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fcd34d;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-top: 10px;
+  line-height: 1.4;
+  animation: fadeIn 0.3s ease;
+  text-align: center;
+}

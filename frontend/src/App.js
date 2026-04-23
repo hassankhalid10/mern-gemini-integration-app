@@ -45,6 +45,7 @@ export default function App() {
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [sidebarError, setSidebarError] = useState("");
   
   const messagesEndRef = useRef(null);
 
@@ -222,6 +223,16 @@ export default function App() {
 
   const togglePin = async (id, e) => {
     e.stopPropagation();
+    const chatToToggle = chatSessions.find(c => c._id === id);
+    const pinnedCount = chatSessions.filter(c => c.isPinned).length;
+
+    // If trying to pin a new chat and already at limit
+    if (chatToToggle && !chatToToggle.isPinned && pinnedCount >= 3) {
+      setSidebarError("Maximum limit reached: You can only pin up to 3 chats for quick access.");
+      setTimeout(() => setSidebarError(""), 4000);
+      return;
+    }
+
     try {
       await axios.patch(`${API_URL}/ai/chat/${id}/pin`, {}, {
         headers: { Authorization: token }
@@ -341,6 +352,11 @@ export default function App() {
             <button onClick={() => setShowSettings(s => !s)} className="settings-btn">
               ⚙ Settings
             </button>
+            {sidebarError && (
+              <div className="sidebar-error-msg">
+                {sidebarError}
+              </div>
+            )}
         </div>
 
         {showSettings && (
