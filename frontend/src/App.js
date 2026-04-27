@@ -766,6 +766,12 @@ sys.stdout = io.String()
                           )}
                         </div>
                         <div className="msg-action-bar">
+                          {msg.role === 'model' && (
+                            <button
+                              title="Copy"
+                              disabled={aiLoading || regenLoading || editingMsgIdx !== null}
+                              onClick={() => handleCopy(msg.content, idx)}
+                            >
                               {copiedMsgIdx === idx ? '✓' : '📋'}
                             </button>
                           )}
