@@ -17,6 +17,21 @@ Unlike standard chatbots, MERN Gemini Elite features a background **Heuristic Ex
 *   **Contextual Evolution**: Future responses are automatically personalized using your stored "DNA" (Profile & Preferences).
 *   **Full Transparency**: View and manage everything the AI knows about you through the **Memory Manager Dashboard**.
 
+### 🖼️ **Multimodal Intelligence**
+*   **Visual Analysis**: Upload images directly into the chat for instant analysis, object detection, and scene description.
+*   **Document Summarization**: Support for **PDF** and **CSV** uploads. The AI can summarize long documents or extract specific data points from spreadsheets.
+*   **High-Capacity Processing**: Optimized backend to handle file uploads up to **50MB** via Base64 injection.
+
+### 🎙️ **Natural Interaction (STT & TTS)**
+*   **Voice-to-Text (STT)**: Built-in microphone with real-time speech recognition and pulsing visual feedback.
+*   **Text-to-Speech (TTS)**: Listen to AI responses with high-quality synthesis. Each AI bubble features a "Listen/Stop" action.
+*   **Hands-Free Experience**: Toggle voice mode for a completely verbal interaction flow.
+
+### 🐍 **Interactive Python Sandbox**
+*   **On-the-Fly Execution**: Powered by **Pyodide** (WebAssembly), the app can execute AI-generated Python code directly in your browser.
+*   **Real-Time Console**: View script outputs, error logs, and variable printouts in a dedicated, high-contrast terminal panel below code blocks.
+*   **Safety First**: Code runs in a secure, client-side sandbox without touching your local file system.
+
 ### 📂 **Advanced Workspace Management**
 *   **Pro Pinning**: Secure your top 3 high-priority conversations to the top of your workspace.
 *   **Smart Rename**: Organize your thoughts with instant session renaming.
@@ -26,7 +41,7 @@ Unlike standard chatbots, MERN Gemini Elite features a background **Heuristic Ex
 ### 🎨 **Premium Aesthetic & Formatting**
 *   **Developer-Grade Markdown**: Support for complex tables, nested lists, and semantic blockquotes.
 *   **Syntax Mastery**: Code blocks rendered with `react-syntax-highlighter`, featuring line numbers and high-contrast professional themes.
-*   **Glassmorphism UI**: A stunning, responsive interface with vibrant gradients and smooth micro-animations.
+*   **Glassmorphism UI**: A stunning interface with absolute-centered icons, vibrant gradients, and smooth micro-animations.
 
 ### ⚙️ **Tailored Intelligence**
 *   **Persona Control**: Instantly switch AI tones (Professional, Creative, Concise, etc.).
