@@ -63,6 +63,10 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState(null); // { mimeType, data, fileName }
   const [filePreview, setFilePreview] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Code Execution state
+  const [pyodide, setPyodide] = useState(null);
+  const [execResults, setExecResults] = useState({}); // Stores output of code blocks
   
   const messagesEndRef = useRef(null);
 
@@ -71,6 +75,24 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   useEffect(() => { scrollToBottom(); }, [currentMessages, aiLoading]);
+
+  // Initialize Pyodide
+  useEffect(() => {
+    async function initPyodide() {
+      if (window.loadPyodide) {
+        try {
+          const py = await window.loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/npm/pyodide@0.26.1/"
+          });
+          setPyodide(py);
+          console.log("Pyodide Loaded");
+        } catch (err) {
+          console.error("Pyodide failed to load", err);
+        }
+      }
+    }
+    initPyodide();
+  }, []);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -147,6 +169,28 @@ export default function App() {
     utterance.onend = () => setSpeakingIdx(null);
     setSpeakingIdx(idx);
     window.speechSynthesis.speak(utterance);
+  };
+
+  const runPythonCode = async (code, blockId) => {
+    if (!pyodide) return;
+    
+    setExecResults(prev => ({ ...prev, [blockId]: { loading: true, output: "" } }));
+    
+    try {
+      // Redirect stdout to capture print statements
+      await pyodide.runPythonAsync(`
+import sys
+import io
+sys.stdout = io.String()
+      `);
+      
+      await pyodide.runPythonAsync(code);
+      
+      const stdout = await pyodide.runPythonAsync("sys.stdout.getvalue()");
+      setExecResults(prev => ({ ...prev, [blockId]: { loading: false, output: stdout || "Execution successful (no output)" } }));
+    } catch (err) {
+      setExecResults(prev => ({ ...prev, [blockId]: { loading: false, output: `Error: ${err.message}` } }));
+    }
   };
 
   // Auth Effect
@@ -662,26 +706,50 @@ export default function App() {
                             <ReactMarkdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
-                                code({node, inline, className, children, ...props}) {
-                                  const match = /language-(\w+)/.exec(className || '')
-                                  return !inline && match ? (
-                                    <SyntaxHighlighter
-                                      children={String(children).replace(/\n$/, '')}
-                                      style={tomorrow}
-                                      language={match[1]}
-                                      PreTag="div"
-                                      {...props}
-                                    />
-                                  ) : (
-                                    <code className={className} {...props}>
-                                      {children}
-                                    </code>
-                                  )
-                                }
-                              }}
-                            >
-                              {msg.content}
-                            </ReactMarkdown>
+                                  code({node, inline, className, children, ...props}) {
+                                    const match = /language-(\w+)/.exec(className || '');
+                                    const codeContent = String(children).replace(/\n$/, '');
+                                    const isPython = match && match[1] === 'python';
+                                    const blockId = `code-${idx}-${codeContent.substring(0, 20)}`;
+
+                                    return !inline && match ? (
+                                      <div className="code-block-wrapper">
+                                        <div className="code-header">
+                                          <span>{match[1]}</span>
+                                          {isPython && (
+                                            <button 
+                                              className="run-code-btn" 
+                                              onClick={() => runPythonCode(codeContent, blockId)}
+                                              disabled={!pyodide || execResults[blockId]?.loading}
+                                            >
+                                              {execResults[blockId]?.loading ? 'Running...' : 'Run Code'}
+                                            </button>
+                                          )}
+                                        </div>
+                                        <SyntaxHighlighter
+                                          children={codeContent}
+                                          style={tomorrow}
+                                          language={match[1]}
+                                          PreTag="div"
+                                          {...props}
+                                        />
+                                        {execResults[blockId] && (
+                                          <div className="code-output">
+                                            <strong>Output:</strong>
+                                            <pre>{execResults[blockId].output}</pre>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <code className={className} {...props}>
+                                        {children}
+                                      </code>
+                                    )
+                                  }
+                                }}
+                              >
+                                {msg.content}
+                              </ReactMarkdown>
                           ) : (
                             msg.content
                           )}
