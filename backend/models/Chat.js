@@ -2,7 +2,12 @@ import mongoose from "mongoose";
 
 const messageSchema = new mongoose.Schema({
   role: { type: String, enum: ['user', 'model'], required: true },
-  content: { type: String, required: true }
+  content: { type: String, required: true },
+  file: {
+    mimeType: String,
+    data: String, // Base64
+    fileName: String
+  }
 });
 
 const chatSchema = new mongoose.Schema({

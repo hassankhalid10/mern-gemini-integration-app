@@ -126,7 +126,7 @@ const extractAndSaveMemory = async (userId, userMessage) => {
 
 router.post("/ask", auth, async (req, res) => {
   try {
-    const { question, chatId, tone, maxTokens } = req.body;
+    const { question, chatId, tone, maxTokens, fileData } = req.body;
     let chatSession;
     let history = [];
 
@@ -137,11 +137,22 @@ router.post("/ask", auth, async (req, res) => {
         return res.status(404).json({ msg: "Chat not found" });
       }
       
-      // Map DB messages to Gemini format
-      history = chatSession.messages.map(msg => ({
-        role: msg.role,
-        parts: [{ text: msg.content }]
-      }));
+      // Map DB messages to Gemini format (including files)
+      history = chatSession.messages.map(msg => {
+        const parts = [{ text: msg.content }];
+        if (msg.file && msg.file.data) {
+          parts.push({
+            inlineData: {
+              mimeType: msg.file.mimeType,
+              data: msg.file.data
+            }
+          });
+        }
+        return {
+          role: msg.role,
+          parts: parts
+        };
+      });
     } else {
       // New chat. Use the first question as a tentative title
       chatSession = new Chat({
@@ -162,8 +173,19 @@ router.post("/ask", auth, async (req, res) => {
 
     const chatInstance = model.startChat({ history });
 
+    // Prepare message parts (text + optional file)
+    const promptParts = [{ text: finalQuestion }];
+    if (fileData) {
+      promptParts.push({
+        inlineData: {
+          mimeType: fileData.mimeType,
+          data: fileData.data
+        }
+      });
+    }
+
     // Send new message
-    const result = await chatInstance.sendMessage(finalQuestion);
+    const result = await chatInstance.sendMessage(promptParts);
     const answer = result.response.text();
 
     // Validate response is not empty
@@ -171,7 +193,15 @@ router.post("/ask", auth, async (req, res) => {
       return res.status(500).json({ msg: "AI returned an empty response. Try rephrasing your question." });
     }
 
-    chatSession.messages.push({ role: "user", content: question });
+    chatSession.messages.push({ 
+      role: "user", 
+      content: question,
+      file: fileData ? {
+        mimeType: fileData.mimeType,
+        data: fileData.data,
+        fileName: fileData.fileName
+      } : undefined
+    });
     chatSession.messages.push({ role: "model", content: answer });
     
     await chatSession.save();
