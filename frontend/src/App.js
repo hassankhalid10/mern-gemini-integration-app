@@ -59,6 +59,11 @@ export default function App() {
   const [speakingIdx, setSpeakingIdx] = useState(null);
   const recognitionRef = useRef(null);
   
+  // Multimodal state
+  const [selectedFile, setSelectedFile] = useState(null); // { mimeType, data, fileName }
+  const [filePreview, setFilePreview] = useState(null);
+  const fileInputRef = useRef(null);
+  
   const messagesEndRef = useRef(null);
 
   // Scroll to bottom whenever messages update
@@ -105,6 +110,29 @@ export default function App() {
       recognitionRef.current?.start();
       setIsListening(true);
     }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Data = reader.result.split(',')[1];
+      setSelectedFile({
+        mimeType: file.type,
+        data: base64Data,
+        fileName: file.name
+      });
+      setFilePreview(file.type.startsWith('image/') ? reader.result : 'file');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const speakText = (text, idx) => {
@@ -192,13 +220,19 @@ export default function App() {
     
     // Optimistically render user message
     const tempQuestion = question;
-    setCurrentMessages(prev => [...prev, { role: "user", content: tempQuestion }]);
+    const tempFile = selectedFile;
+    setCurrentMessages(prev => [...prev, { 
+      role: "user", 
+      content: tempQuestion, 
+      file: tempFile 
+    }]);
     setQuestion(""); 
+    clearFile();
     
     try {
       const res = await axios.post(
         `${API_URL}/ai/ask`,
-        { question: tempQuestion, chatId: activeChatId, tone, maxTokens },
+        { question: tempQuestion, chatId: activeChatId, tone, maxTokens, fileData: tempFile },
         { headers: { Authorization: token } }
       );
       
@@ -651,6 +685,17 @@ export default function App() {
                           ) : (
                             msg.content
                           )}
+                          {msg.file && msg.file.data && (
+                            <div className="msg-file-attachment">
+                              {msg.file.mimeType.startsWith('image/') ? (
+                                <img src={`data:${msg.file.mimeType};base64,${msg.file.data}`} alt="attachment" />
+                              ) : (
+                                <div className="file-doc-link">
+                                  📄 {msg.file.fileName || 'Document'}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="msg-action-bar">
                               {copiedMsgIdx === idx ? '✓' : '📋'}
@@ -778,7 +823,32 @@ export default function App() {
           )}
 
           <form className="input-area" onSubmit={askAI}>
+            {filePreview && (
+              <div className="file-preview-bar">
+                {filePreview === 'file' ? (
+                  <div className="file-preview-icon">📄 {selectedFile.fileName}</div>
+                ) : (
+                  <img src={filePreview} alt="preview" className="img-preview-thumb" />
+                )}
+                <button type="button" onClick={clearFile} className="clear-file-btn"><X size={14} /></button>
+              </div>
+            )}
             <div className="input-wrapper">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleFileChange}
+                accept="image/*,.pdf,.csv"
+              />
+              <button 
+                type="button" 
+                className="attach-btn" 
+                onClick={() => fileInputRef.current.click()}
+                title="Attach Image or Document"
+              >
+                <Paperclip size={20} />
+              </button>
               <input
                 type="text"
                 placeholder="Message Gemini..."
