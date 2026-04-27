@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Pin, Trash2, Edit3, Check, X, Copy, RotateCcw, Send, LogOut, Settings, Brain, Plus } from 'lucide-react';
+import { Pin, Trash2, Edit3, Check, X, Copy, RotateCcw, Send, LogOut, Settings, Brain, Plus, Mic, Volume2, VolumeX, Paperclip, Play, Square } from 'lucide-react';
 import "./App.css";
 
 const API_URL = "http://localhost:4000/api";
@@ -54,6 +54,11 @@ export default function App() {
   const [newMemVal, setNewMemVal] = useState("");
   const [newMemCat, setNewMemCat] = useState("profile");
   
+  // Voice Interaction state
+  const [isListening, setIsListening] = useState(false);
+  const [speakingIdx, setSpeakingIdx] = useState(null);
+  const recognitionRef = useRef(null);
+  
   const messagesEndRef = useRef(null);
 
   // Scroll to bottom whenever messages update
@@ -61,6 +66,60 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   useEffect(() => { scrollToBottom(); }, [currentMessages, aiLoading]);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0])
+          .map(result => result.transcript)
+          .join('');
+        setQuestion(transcript);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
+  };
+
+  const speakText = (text, idx) => {
+    if (speakingIdx === idx) {
+      window.speechSynthesis.cancel();
+      setSpeakingIdx(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onend = () => setSpeakingIdx(null);
+    setSpeakingIdx(idx);
+    window.speechSynthesis.speak(utterance);
+  };
 
   // Auth Effect
   useEffect(() => {
@@ -594,13 +653,15 @@ export default function App() {
                           )}
                         </div>
                         <div className="msg-action-bar">
+                              {copiedMsgIdx === idx ? '✓' : '📋'}
+                            </button>
+                          )}
                           {msg.role === 'model' && (
                             <button
-                              title="Copy"
-                              disabled={aiLoading || regenLoading || editingMsgIdx !== null}
-                              onClick={() => handleCopy(msg.content, idx)}
+                              title={speakingIdx === idx ? "Stop" : "Listen"}
+                              onClick={() => speakText(msg.content, idx)}
                             >
-                              {copiedMsgIdx === idx ? '✓' : '📋'}
+                              {speakingIdx === idx ? <VolumeX size={14} /> : <Volume2 size={14} />}
                             </button>
                           )}
                           {msg.role === 'model' && idx === lastModelIdx && (
@@ -725,8 +786,15 @@ export default function App() {
                 onChange={e => setQuestion(e.target.value)}
                 disabled={aiLoading}
               />
-              <button type="submit" disabled={!question.trim() || aiLoading} className="ask-btn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              </button>
+              <button 
+                type="button" 
+                className={`voice-btn ${isListening ? 'listening' : ''}`} 
+                onClick={toggleListening}
+                title={isListening ? "Stop Listening" : "Start Voice Input"}
+              >
+                <Mic size={20} />
               </button>
             </div>
           </form>
