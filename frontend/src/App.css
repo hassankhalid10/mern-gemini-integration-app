@@ -425,7 +425,7 @@ input:focus {
 
 .input-wrapper input {
   width: 100%;
-  padding: 18px 60px 18px 24px;
+  padding: 18px 100px 18px 52px;
   background: var(--card-bg);
   border-radius: 30px;
   font-size: 16px;
@@ -655,6 +655,19 @@ input:focus {
 .msg-action-bar button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.speaker-btn {
+  padding: 6px !important;
+  border-radius: 50% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.speaker-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* EDIT AREA */
@@ -1171,22 +1184,32 @@ input:focus {
   background: rgba(0, 0, 0, 0.4);
 }
 
+@media (max-width: 600px) {
+  .memory-add-form {
+    flex-direction: column;
+  }
 }
 
 /* --- NEW FEATURES STYLING --- */
 
 /* Voice Button */
 .voice-btn {
+  position: absolute;
+  right: 56px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
   background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 8px;
   border-radius: 50%;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 5;
 }
 
 .voice-btn:hover {
@@ -1208,6 +1231,11 @@ input:focus {
 
 /* File Upload & Preview */
 .attach-btn {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  bottom: 8px;
+  width: 40px;
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -1218,6 +1246,7 @@ input:focus {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 5;
 }
 
 .attach-btn:hover {
