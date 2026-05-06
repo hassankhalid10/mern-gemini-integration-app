@@ -9,49 +9,44 @@
 
 ---
 
-## ✨ Evolutionary Features
+## ✨ Core Innovations
 
-### 🚀 **Autonomous Memory Engine** (Breakthrough)
-Unlike standard chatbots, MERN Gemini Elite features a background **Heuristic Extraction Layer**.
-*   **Zero-Effort Learning**: The AI automatically identifies and stores your name, location, job, and preferences directly from your messages.
-*   **Contextual Evolution**: Future responses are automatically personalized using your stored "DNA" (Profile & Preferences).
-*   **Full Transparency**: View and manage everything the AI knows about you through the **Memory Manager Dashboard**.
+### 🧠 Autonomous Memory Engine
+Unlike standard chatbots, MERN Gemini Elite features a background **Heuristic Extraction Layer**. It automatically identifies and stores user context (name, location, preferences) directly from messages, creating a persistent "DNA" for contextual personalization.
 
-### 🖼️ **Multimodal Intelligence**
-*   **Visual Analysis**: Upload images directly into the chat for instant analysis, object detection, and scene description.
-*   **Document Summarization**: Support for **PDF** and **CSV** uploads. The AI can summarize long documents or extract specific data points from spreadsheets.
-*   **High-Capacity Processing**: Optimized backend to handle file uploads up to **50MB** via Base64 injection.
+### 🖼️ Multimodal Intelligence
+*   **Visual Analysis**: Instant analysis, object detection, and scene description for image uploads.
+*   **Document Logic**: Full support for PDF and CSV summarization and structured data extraction.
+*   **High-Capacity**: Optimized backend to handle file uploads up to 50MB.
 
-### 🎙️ **Natural Interaction (STT & TTS)**
-*   **Voice-to-Text (STT)**: Built-in microphone with real-time speech recognition and pulsing visual feedback.
-*   **Text-to-Speech (TTS)**: Listen to AI responses with high-quality synthesis. Each AI bubble features a "Listen/Stop" action.
-*   **Hands-Free Experience**: Toggle voice mode for a completely verbal interaction flow.
+### 🐍 Interactive Python Sandbox
+Powered by **Pyodide** (WebAssembly), the app executes AI-generated Python code directly in a secure browser sandbox. Features a real-time console for script outputs and error logs.
 
-### 🐍 **Interactive Python Sandbox**
-*   **On-the-Fly Execution**: Powered by **Pyodide** (WebAssembly), the app can execute AI-generated Python code directly in your browser.
-*   **Real-Time Console**: View script outputs, error logs, and variable printouts in a dedicated, high-contrast terminal panel below code blocks.
-*   **Safety First**: Code runs in a secure, client-side sandbox without touching your local file system.
+### 🎙️ Natural Interaction (STT & TTS)
+*   **Speech-to-Text**: Real-time microphone input with pulsing visual feedback.
+*   **Text-to-Speech**: High-quality synthesis of AI responses with dedicated playback controls.
+*   **Hands-Free Mode**: Full voice-driven conversation flow.
 
-### 📂 **Advanced Workspace Management**
-*   **Pro Pinning**: Secure your top 3 high-priority conversations to the top of your workspace.
-*   **Smart Rename**: Organize your thoughts with instant session renaming.
-*   **Secure Deletion**: Clean your workspace with a safe, modal-confirmed deletion process.
-*   **Sorted Workflow**: Automated sorting based on pin status and last-activity timestamps.
+### 📂 Advanced Workspace Management
+*   **Pro Pinning**: Secure high-priority conversations to the top of your workspace.
+*   **Smart Management**: Instant session renaming and secure, modal-confirmed deletion.
+*   **Sorted Workflow**: Automated sorting based on activity and pin status.
 
-### 🎨 **Premium Aesthetic & Formatting**
-*   **Developer-Grade Markdown**: Support for complex tables, nested lists, and semantic blockquotes.
-*   **Syntax Mastery**: Code blocks rendered with `react-syntax-highlighter`, featuring line numbers and high-contrast professional themes.
-*   **Glassmorphism UI**: A stunning interface with absolute-centered icons, vibrant gradients, and smooth micro-animations.
+### 🎨 Premium UI & Formatting
+*   **Glassmorphism Aesthetic**: A stunning interface with vibrant gradients and smooth micro-animations.
+*   **Developer-Grade Markdown**: Complex tables, nested lists, and semantic blockquotes support.
+*   **Syntax Mastery**: Professional code rendering with `react-syntax-highlighter`.
 
-### ⚙️ **Tailored Intelligence**
-*   **Persona Control**: Instantly switch AI tones (Professional, Creative, Concise, etc.).
-*   **Token Precision**: Adjust the "depth" of AI responses with an integrated max-token slider.
-*   **Message Forking**: Edit any previous message to branch the conversation into new possibilities.
+### ⚙️ Tailored Intelligence
+*   **Persona Control**: Switch between Professional, Creative, and Concise AI tones.
+*   **Token Precision**: Integrated slider to adjust AI response depth.
+*   **Message Forking**: Edit previous messages to branch conversations into new directions.
 
 ---
 
 ## 🛠️ Technical Architecture
 
+### System Flow
 ```mermaid
 graph TD
     A[React Frontend] -->|JWT Auth| B[Express API]
@@ -61,15 +56,36 @@ graph TD
     E -->|Update| C
 ```
 
+### Directory Structure
+```text
+├── backend/
+│   ├── controllers/    # API Request Handlers
+│   ├── services/       # Business & AI Integration Logic
+│   ├── models/         # Mongoose Database Schemas
+│   ├── routes/         # Express API Routes
+│   └── middleware/     # Auth & File Handling
+└── frontend/
+    ├── src/
+    │   ├── components/ # Modular UI Components
+    │   ├── services/   # Frontend API Clients
+    │   └── hooks/      # Custom React Logic Hooks
+```
+
 ---
 
-## 🚀 Rapid Deployment
+## 🚀 Getting Started
 
-### 1. Backend Core
+### 1. Prerequisites
+- Node.js (v18+)
+- MongoDB Instance
+- Google Gemini API Key
+
+### 2. Backend Setup
 ```bash
-cd backend && npm install
+cd backend
+npm install
 ```
-Configure `.env`:
+Configure your `.env` file:
 ```env
 PORT=4000
 MONGO_URI=your_mongodb_uri
@@ -77,42 +93,21 @@ GEMINI_API_KEY=your_key
 JWT_SECRET=your_secret
 ```
 
-### 2. Frontend Interface
+### 3. Frontend Setup
 ```bash
-cd frontend && npm install
+cd frontend
+npm install
 ```
 
-### 3. Launch
+### 4. Launch Application
 ```bash
-# Backend
-npm start
+# Terminal 1: Backend
+npm start (within /backend)
 
-# Frontend
-npm start
+# Terminal 2: Frontend
+npm start (within /frontend)
 ```
 
 ---
 
-## 🧪 The "Wow" Test
-
-Want to see the autonomous memory in action? Follow these steps:
-
-1.  **Introduce Yourself**: *"Hi, I'm Hassan. I'm a Senior Dev from Dubai and I love clean code."*
-2.  **Verify the 'Brain'**: Click the **Memory Manager** icon in the sidebar. You'll see your job and location already saved.
-3.  **The Context Test**: Start a **New Chat** and ask: *"Suggest a dinner based on my location."*
-4.  **The Result**: The AI will skip the questions and recommend the best spots in Dubai immediately.
-
----
-
-## 🏗️ Built With
-
-*   **Logic**: [React.js](https://reactjs.org/) & [Node.js](https://nodejs.org/)
-*   **Database**: [MongoDB](https://www.mongodb.com/) & [Mongoose](https://mongoosejs.com/)
-*   **AI Engine**: [Google Gemini 1.5 Flash](https://deepmind.google/technologies/gemini/)
-*   **Styling**: Vanilla CSS with Glassmorphism
-*   **Icons**: [Lucide-React](https://lucide.dev/)
-*   **Formatting**: [React-Markdown](https://github.com/remarkjs/react-markdown)
-
----
-
-Developed by the Hassan.
+Developed by **Hassan**.
