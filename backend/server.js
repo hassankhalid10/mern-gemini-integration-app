@@ -1,4 +1,13 @@
+/**
+ * Server Entry Point
+ * 
+ * This is the "brain" of the backend. When you start the app, this file
+ * sets everything up, connects to the database, and starts listening 
+ * for requests from the website.
+ */
+
 import dotenv from "dotenv";
+
 dotenv.config();   // MUST BE FIRST LINE LOGICALLY
 
 import express from "express";

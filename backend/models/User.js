@@ -1,4 +1,13 @@
+/**
+ * User Model
+ * 
+ * This file defines what a "User" looks like in our database.
+ * It stores your name, email, encrypted password, and the things
+ * the AI remembers about you (your memory).
+ */
+
 import mongoose from "mongoose";
+
 import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema({
