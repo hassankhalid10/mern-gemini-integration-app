@@ -35,6 +35,7 @@ export default function MessageBubble({
       onMouseEnter={() => { if (editingMsgIdx === null) setHoveredMsgIdx(idx); }}
       onMouseLeave={() => setHoveredMsgIdx(null)}
     >
+      {/* Editing View: Shows up when you click the "Edit" pencil icon */}
       {isEditing ? (
         <div className="edit-area">
           <textarea
@@ -44,6 +45,7 @@ export default function MessageBubble({
             autoFocus
           />
           <div className="edit-actions">
+            {/* Save Button: Submits your edit and gets a new AI response */}
             <button
               className="edit-save-btn"
               disabled={!editContent.trim() || aiLoading}
@@ -51,6 +53,7 @@ export default function MessageBubble({
             >
               {aiLoading ? '⏳' : 'Save & Submit'}
             </button>
+            {/* Cancel Button: Close editing without saving */}
             <button
               className="edit-cancel-btn"
               onClick={() => { setEditingMsgIdx(null); setEditContent(""); }}
@@ -60,18 +63,22 @@ export default function MessageBubble({
           </div>
         </div>
       ) : (
+
         <>
           <div className={`bubble ${msg.role === 'model' ? 'ai-bubble' : ''}`}>
+            {/* If it's an AI message, we render it as 'Markdown' (allowing bold, lists, and code blocks) */}
             {msg.role === 'model' ? (
               <ReactMarkdown 
                 remarkPlugins={[remarkGfm]}
                 components={{
+                    // Special handling for code snippets inside the AI's message
                     code({node, inline, className, children, ...props}) {
                       const match = /language-(\w+)/.exec(className || '');
                       const codeContent = String(children).replace(/\n$/, '');
                       const isPython = match && match[1] === 'python';
                       const blockId = `code-${idx}-${codeContent.substring(0, 20)}`;
 
+                      // If it's a full block of code (not just a single word)
                       return !inline && match ? (
                         <CodeBlock 
                           language={match[1]}
@@ -83,6 +90,7 @@ export default function MessageBubble({
                           output={execResults[blockId]?.output}
                         />
                       ) : (
+                        // If it's just a single word like `this`, show it normally
                         <code className={className} {...props}>
                           {children}
                         </code>
@@ -93,8 +101,11 @@ export default function MessageBubble({
                   {msg.content}
                 </ReactMarkdown>
             ) : (
+              // If it's a user message, just show the plain text
               msg.content
             )}
+
+            {/* File Attachment: Shows an image or a file link if you uploaded one */}
             {msg.file && msg.file.data && (
               <div className="msg-file-attachment">
                 {msg.file.mimeType.startsWith('image/') ? (
@@ -107,7 +118,10 @@ export default function MessageBubble({
               </div>
             )}
           </div>
+
+          {/* Message Action Bar: Buttons for Copy, Listen, Regenerate, or Edit */}
           <div className="msg-action-bar">
+            {/* Copy Button (AI only) */}
             {msg.role === 'model' && (
               <button
                 title="Copy"
@@ -117,6 +131,8 @@ export default function MessageBubble({
                 {copiedMsgIdx === idx ? '✓' : '📋'}
               </button>
             )}
+            
+            {/* Listen Button (AI only): Reads the message out loud */}
             {msg.role === 'model' && (
               <button
                 className="speaker-btn"
@@ -126,6 +142,8 @@ export default function MessageBubble({
                 {speakingIdx === idx ? <VolumeX size={14} /> : <Volume2 size={14} />}
               </button>
             )}
+            
+            {/* Regenerate Button (AI only, only for the very last answer) */}
             {msg.role === 'model' && isLastModel && (
               <button
                 title="Regenerate"
@@ -135,6 +153,8 @@ export default function MessageBubble({
                 {regenLoading ? '⏳' : '🔁'}
               </button>
             )}
+            
+            {/* Edit Button (User only): Let's you change what you said */}
             {msg.role === 'user' && (
               <button
                 title="Edit"
@@ -145,6 +165,7 @@ export default function MessageBubble({
               </button>
             )}
           </div>
+
         </>
       )}
     </div>

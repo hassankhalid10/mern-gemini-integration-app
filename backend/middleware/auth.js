@@ -1,5 +1,13 @@
+/**
+ * Auth Middleware
+ * 
+ * This is like a "Security Guard". Every time the website asks the server
+ * for something private (like your chat history), this guard checks to 
+ * make sure you are logged in and have a valid "ID card" (token).
+ */
 
 import jwt from "jsonwebtoken";
+
 
 export const authMiddleware = (req, res, next) => {
   let token = req.headers.authorization;
