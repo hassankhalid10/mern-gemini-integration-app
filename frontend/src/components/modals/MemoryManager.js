@@ -19,14 +19,18 @@ export default function MemoryManager({
         </div>
         
         <div className="memory-body">
+          {/* Add New Memory Section: The form at the top of the modal */}
           <div className="memory-section">
             <h4>Add New Memory</h4>
             <div className="memory-add-form">
+              {/* Category Picker: Choose if this is a Fact, a Preference, or a Goal */}
               <select value={newMemCat} onChange={e => setNewMemCat(e.target.value)}>
                 <option value="profile">Profile (Facts)</option>
                 <option value="preferences">Preferences</option>
                 <option value="goals">Goals</option>
               </select>
+              
+              {/* The "Label" input (only shows for Profile and Preferences) */}
               {newMemCat !== "goals" && (
                 <input 
                   placeholder="Key (e.g. Location)" 
@@ -34,6 +38,8 @@ export default function MemoryManager({
                   onChange={e => setNewMemKey(e.target.value)}
                 />
               )}
+              
+              {/* The "Actual Info" input */}
               <input 
                 placeholder={newMemCat === "goals" ? "Add a new goal..." : "Value (e.g. Dubai)"} 
                 value={newMemVal}
@@ -43,11 +49,14 @@ export default function MemoryManager({
             </div>
           </div>
 
+
           <div className="memory-grid">
             {/* Profile Section */}
+            {/* Profile Section: Shows hard facts like "Name" or "Job" */}
             <div className="memory-card">
               <h5>👤 Profile Facts</h5>
               <div className="memory-items">
+                {/* Loop through each saved fact and show a delete button next to it */}
                 {Object.entries(memory.profile || {}).map(([k, v]) => (
                   <div key={k} className="memory-item">
                     <span><strong>{k}:</strong> {v}</span>
@@ -56,6 +65,7 @@ export default function MemoryManager({
                 ))}
               </div>
             </div>
+
 
             {/* Preferences Section */}
             <div className="memory-card">
@@ -71,9 +81,11 @@ export default function MemoryManager({
             </div>
 
             {/* Goals Section */}
+            {/* Goals Section: Shows a list of things you want to achieve */}
             <div className="memory-card full-width">
               <h5>🎯 Current Goals</h5>
               <div className="goal-tags">
+                {/* Goals are stored as a list, so we show them as "Tags" */}
                 {(memory.goals || []).map((goal, i) => (
                   <div key={i} className="goal-tag">
                     {goal}
@@ -82,6 +94,7 @@ export default function MemoryManager({
                 ))}
               </div>
             </div>
+
           </div>
         </div>
       </div>
